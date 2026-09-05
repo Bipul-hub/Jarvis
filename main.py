@@ -3,17 +3,51 @@ import webbrowser
 import pyttsx3
 import musicLibrary
 import requests
+import ollama 
+from gtts import gTTS   
+import pygame
+import os
 
 recognizer = sr.Recognizer()
 newsapi = "6348032d4ad145fea073122c6db24672"
 
-def speak(text):
+def speak_old(text):
     engine = pyttsx3.init("sapi5")
     engine.setProperty("rate", 150)
     engine.setProperty("volume", 1.0)
     engine.say(text)
     engine.runAndWait()
     engine.stop()  
+
+def speak(text):
+    tts = gTTS(text)
+    tts.save('temp.mp3')
+
+    pygame.mixer.init()
+    pygame.mixer.music.load("temp.mp3")
+    pygame.mixer.music.play()
+
+    while pygame.mixer.music.get_busy():
+        pygame.time.Clock().tick(10)
+
+    pygame.mixer.music.unload()
+    os.remove("temp.mp3")
+
+def ask_ollama(command):
+    completion = ollama.chat(
+        model="llama3.2:3b",
+        messages=[
+            { "role": "system",
+               "content": "You are a virtual assistant named Jarvis, skilled in general tasks like Alexa and Google cloud. Give short responses." 
+            },
+            { "role": "user",
+               "content": command
+            }
+        ],
+        keep_alive = "5m",
+        options ={"num_predict":300}
+    ) 
+    return completion["message"]["content"]
 
 def processCommand(c):
     if "open google" in c.lower():
@@ -60,6 +94,12 @@ def processCommand(c):
         except Exception as e:
             print("News error:", e)
             speak("There was an error getting the news.")
+
+    else:
+        output = ask_ollama(c) 
+        print("Jarvis:", output) 
+        speak(output)
+        
 
 
 if __name__ == "__main__":
